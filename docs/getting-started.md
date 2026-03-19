@@ -58,7 +58,23 @@ kind create cluster --name indigo
 ./scripts/download-models.sh ./models smol,qwen
 ```
 
-### 3. Start Tilt
+### 3. Load models into the cluster
+
+```bash
+# Create a temporary pod to populate the PVC
+kubectl apply -f k8s/pvc.yaml
+kubectl run model-loader --image=busybox --restart=Never \
+  --overrides='{"spec":{"containers":[{"name":"loader","image":"busybox","command":["sleep","3600"],"volumeMounts":[{"name":"models","mountPath":"/models"}]}],"volumes":[{"name":"models","persistentVolumeClaim":{"claimName":"indigo-models"}}]}}'
+kubectl wait --for=condition=Ready pod/model-loader --timeout=60s
+
+# Copy downloaded models into the PVC
+kubectl cp ./models/. model-loader:/models/
+
+# Clean up the loader pod
+kubectl delete pod model-loader
+```
+
+### 4. Start Tilt
 
 ```bash
 tilt up
@@ -66,7 +82,7 @@ tilt up
 
 Tilt will build the image, deploy to KinD, and port-forward **http://localhost:5000**.
 
-Code changes in `app/` will live-reload automatically.
+Code changes in `app/` will live-reload automatically (Flask debug mode is enabled in development).
 
 ### 4. Tear down
 

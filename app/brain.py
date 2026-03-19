@@ -193,7 +193,7 @@ class IndigoBrain:
 
     def run_llama(self, prompt, temperature, model_path):
         if model_path is None:
-            return "No GGUF model found in ~/indigo/models."
+            return f"No GGUF model found in {MODELS_DIR}"
         self._trace("llm", f"Running {Path(model_path).name} at temp={temperature}")
         llm = self.get_llm(model_path)
         output = llm(

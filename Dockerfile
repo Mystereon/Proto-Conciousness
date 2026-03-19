@@ -20,6 +20,10 @@ COPY app/ .
 # Models directory (mount as volume)
 RUN mkdir -p /models
 
+# Run as non-root user
+RUN useradd -r -s /bin/false indigo && chown indigo:indigo /models
+USER indigo
+
 ENV INDIGO_BASE_DIR=/app \
     INDIGO_HOST=0.0.0.0 \
     INDIGO_PORT=5000 \

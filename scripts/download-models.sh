@@ -11,7 +11,7 @@ MODEL_KEYS="${2:-${INDIGO_MODEL_KEYS:-smol,qwen}}"
 
 declare -A MODELS
 MODELS[smol]="bartowski/SmolLM2-1.7B-Instruct-GGUF|SmolLM2-1.7B-Instruct-Q4_K_M.gguf"
-MODELS[qwen]="Qwen/Qwen2.5-3B-Instruct-GGUF|Qwen2.5-3B-Instruct-Q4_K_M.gguf"
+MODELS[qwen]="bartowski/Qwen2.5-3B-Instruct-GGUF|Qwen2.5-3B-Instruct-Q4_K_M.gguf"
 MODELS[phi]="bartowski/Phi-3.5-mini-instruct-GGUF|Phi-3.5-mini-instruct-Q4_K_M.gguf"
 MODELS[llama]="bartowski/Llama-3.2-3B-Instruct-GGUF|Llama-3.2-3B-Instruct-Q4_K_M.gguf"
 
@@ -36,7 +36,7 @@ for key in "${KEYS[@]}"; do
     else
         url="https://huggingface.co/$repo/resolve/main/$filename"
         echo "Downloading $key: $filename ..."
-        curl -L --progress-bar -o "$dest" "$url"
+        curl -fL --progress-bar -o "$dest" "$url"
         echo "OK: $filename"
     fi
 

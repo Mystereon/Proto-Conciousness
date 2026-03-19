@@ -8,3 +8,4 @@ data:
   INDIGO_MODEL_DIR: "/models"
   INDIGO_CTX_SIZE: "2048"
   INDIGO_MAX_TOKENS: "256"
+  INDIGO_DEBUG: "true"
