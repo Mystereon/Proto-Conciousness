@@ -2,6 +2,25 @@
 
 Indigo is a local-first AI companion stack with dual-model conductor logic, survival comms tooling, and a resilient offline-oriented runtime philosophy.
 
+## Getting Started
+
+See the **[Getting Started Guide](docs/getting-started.md)** for full setup instructions.
+
+**Docker Compose** (quickest):
+```bash
+./scripts/download-models.sh ./models smol,qwen
+docker compose up --build
+```
+
+**Tilt + KinD** (Kubernetes dev):
+```bash
+kind create cluster --name indigo
+./scripts/download-models.sh ./models smol,qwen
+tilt up
+```
+
+**Native install**: See [One-Line Installs](#one-line-installs) below.
+
 ## One-Line Installs
 
 ### Windows (PowerShell)
