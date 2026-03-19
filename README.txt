@@ -1,6 +1,6 @@
 INDIGO ALPHA SEVEN
 Open Distribution Bundle
-Version: v21
+Version: v22
 Date: March 19, 2026
 
 MISSION STATEMENT
@@ -26,7 +26,7 @@ WHAT IS IN THIS BUNDLE
 3. README.txt
    - This document
 
-CORE CAPABILITIES (v21)
+CORE CAPABILITIES (v22)
 1. Local Indigo node setup/repair at C:\indigo
 2. Python venv bootstrap + dependency install
 3. llama.cpp runtime detection (and download fallback)
@@ -61,6 +61,10 @@ CORE CAPABILITIES (v21)
    - Aero
    - N64
    - Army
+14. Repository bootstrap installers:
+   - install.ps1 (Windows one-line bootstrap)
+   - install.sh (Linux bootstrap)
+   - install-android.sh (Android Termux bootstrap)
 
 MODEL CATALOG (GGUF)
 - smol
@@ -95,6 +99,11 @@ WEB UI THEMES
 - Army: subdued field greens.
 
 VERSION CHANGES
+v22
+- Added README one-line install guidance for Windows, Linux, and Android.
+- Added repo bootstrap scripts: install.ps1, install.sh, install-android.sh.
+- Added iOS note with recommended browser-client path.
+
 v21
 - Added dual-model conductor role pins (logical + creative model files).
 - Added live reasoning feed panel endpoint + UI rendering.
@@ -173,6 +182,23 @@ SHAREABLE INSTALL STEPS
    powershell -NoProfile -ExecutionPolicy Bypass -File ".\ProtoConsciousIndigo.ps1"
 4. Start Indigo:
    C:\indigo\run_indigo.bat
+
+REPOSITORY ONE-LINE INSTALLS
+Windows PowerShell:
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/Mystereon/Proto-Conciousness/main/install.ps1 | iex"
+
+Linux bash:
+curl -fsSL https://raw.githubusercontent.com/Mystereon/Proto-Conciousness/main/install.sh | bash
+
+Android Termux (recommended client launcher):
+bash <(curl -fsSL https://raw.githubusercontent.com/Mystereon/Proto-Conciousness/main/install-android.sh)
+
+Android Termux (experimental lite-local node):
+bash <(curl -fsSL https://raw.githubusercontent.com/Mystereon/Proto-Conciousness/main/install-android.sh) lite-local
+
+iOS note:
+- Native shell-style local install is not supported.
+- Recommended path: run Indigo node on desktop/Linux and open the node URL in Safari.
 
 NOTES FOR ENGINEERING TESTERS
 1. Keep tests local first (health route, chat route, model load timing).
