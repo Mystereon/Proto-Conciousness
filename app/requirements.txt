@@ -1,0 +1,5 @@
+flask>=3.0,<4
+flask-cors>=4.0,<5
+requests>=2.31,<3
+duckduckgo-search>=4.0,<7
+llama-cpp-python>=0.2.0

@@ -52,6 +52,25 @@ Core idea: **a stable core mind with an evolving toolbox**.
 
 Default pairing is dual-model conductor mode (`smol,qwen`).
 
+## Getting Started
+
+See the **[Getting Started Guide](docs/getting-started.md)** for full setup instructions.
+
+**Docker Compose** (quickest):
+```bash
+./scripts/download-models.sh ./models smol,qwen
+docker compose up --build
+```
+
+**Tilt + KinD** (Kubernetes dev):
+```bash
+kind create cluster --name indigo
+./scripts/download-models.sh ./models smol,qwen
+tilt up
+```
+
+**Native install**: See [One-Line Installs](#one-line-installs) below.
+
 ## One-Line Installs
 
 ### Windows (PowerShell)
