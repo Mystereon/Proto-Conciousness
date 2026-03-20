@@ -1,0 +1,135 @@
+﻿{
+    "generated_utc":  "2026-03-20T06:57:58Z",
+    "source_dir":  "C:\\indigo\\models",
+    "chunk_size_mb":  95,
+    "models":  [
+                   {
+                       "model_file":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf",
+                       "source_path":  "C:\\indigo\\models\\Qwen2.5-3B-Instruct-Q4_K_M.gguf",
+                       "bytes":  1929903264,
+                       "sha256":  "9c9f56a391a3abbd5b89d0245bf6106081bcc3173119d4229235dd9d23253f94",
+                       "chunk_size_bytes":  99614720,
+                       "parts":  [
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0001",
+                                         "bytes":  99614720,
+                                         "sha256":  "9ea0e83fc2f088e78ee827b8a07a3e4ab391f34e211874afbc1c00b3c74d0377"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0002",
+                                         "bytes":  99614720,
+                                         "sha256":  "35de64fcca6732e551428a11c02992dfcb90ecb99baa9653650fa5082af98c10"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0003",
+                                         "bytes":  99614720,
+                                         "sha256":  "cf83e5543d9c2d74d56b4a7d78e842e48cdc537b2094699e68059f34d16c7212"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0004",
+                                         "bytes":  99614720,
+                                         "sha256":  "e83733acb196a0d6ae76ff8b51090c78925ee24bcec6978adf99c22e17d1f130"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0005",
+                                         "bytes":  99614720,
+                                         "sha256":  "989a81c3ef7f687c012a7944595a7128885ef5ff9db263430c55e05a8507c25a"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0006",
+                                         "bytes":  99614720,
+                                         "sha256":  "cba3613ba789d46120028d03faa4f23a600ece6595922870a290955751dffb52"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0007",
+                                         "bytes":  99614720,
+                                         "sha256":  "a05bbf7536d2c2268b6174e68000eb8844a987f03e8948b2de5a276cfd0951ab"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0008",
+                                         "bytes":  99614720,
+                                         "sha256":  "f07a709d8bcea92c0b011a5b6ca8fc68f9ef4a258aee0f6b924677fa13b2a85b"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0009",
+                                         "bytes":  99614720,
+                                         "sha256":  "10130dbd493a0a4389e43b5e232ec63f40069c09077e58dbeab610d99add81aa"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0010",
+                                         "bytes":  99614720,
+                                         "sha256":  "0788ebed27bcd53d47406aa69bbc802df62b7d8dd9f9988d28c13573bb0e703c"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0011",
+                                         "bytes":  99614720,
+                                         "sha256":  "e615df63d9052bdb3030ef6ace780d3d873ddd78490974c235314ed041287dc3"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0012",
+                                         "bytes":  99614720,
+                                         "sha256":  "f65aa0f4d5cde5eea467f7e603c4281c2d418c1669b075ece91711bb59ee3f17"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0013",
+                                         "bytes":  99614720,
+                                         "sha256":  "8980bff6a80f15d4467af277c01130c4492f1e22a9247ee9456787acfe8b18d3"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0014",
+                                         "bytes":  99614720,
+                                         "sha256":  "153ac9a6e23aeaee8136dc1a38af4d68f93d986e5c12f6f74a5b379235c25347"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0015",
+                                         "bytes":  99614720,
+                                         "sha256":  "1a0bfd8828c074dd11eb2d1d53c54fe8755af0ad879358e7380f351a9d9cbff9"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0016",
+                                         "bytes":  99614720,
+                                         "sha256":  "abb7ce408a7f257f7d382e922fd2e7a181cb3952437ec3f04ded803ef4f6c4ac"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0017",
+                                         "bytes":  99614720,
+                                         "sha256":  "bfac9e62f4d328600061392b1db38a633efb40e65ec67acb77f3d60c11fad745"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0018",
+                                         "bytes":  99614720,
+                                         "sha256":  "194bef828ad6efc6eeabbe42647121aebb36060198042788a6c45c1b0ab013d3"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0019",
+                                         "bytes":  99614720,
+                                         "sha256":  "3ed62983fa8ec848badd5d06ec7ad29d949646bcb97667234df340dca219267a"
+                                     },
+                                     {
+                                         "name":  "Qwen2.5-3B-Instruct-Q4_K_M.gguf.part0020",
+                                         "bytes":  37223584,
+                                         "sha256":  "43957e3e05e28aec49f174a40d6c147634230eb581b62d02a0553d18c595d730"
+                                     }
+                                 ]
+                   },
+                   {
+                       "model_file":  "SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
+                       "source_path":  "C:\\indigo\\models\\SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
+                       "bytes":  192451229,
+                       "sha256":  "79688009d94a7a6e66dbd0d6a91f64b614b35a48233fbd5030fe17cb17e436e8",
+                       "chunk_size_bytes":  99614720,
+                       "parts":  [
+                                     {
+                                         "name":  "SmolLM2-1.7B-Instruct-Q4_K_M.gguf.part0001",
+                                         "bytes":  99614720,
+                                         "sha256":  "b027b83aa268361d55ac102c16f3873a460d9adc82a90050ca5e5f522cf17410"
+                                     },
+                                     {
+                                         "name":  "SmolLM2-1.7B-Instruct-Q4_K_M.gguf.part0002",
+                                         "bytes":  92836509,
+                                         "sha256":  "0de57dafe1953d58cd39dbcb9bc5dfea2f873af17bf4505e10d0b686718ced11"
+                                     }
+                                 ]
+                   }
+               ]
+}

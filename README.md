@@ -85,6 +85,14 @@ Use the ISO builder in:
 
 This generates an install-capable live ISO under `output/iso/` for USB imaging.
 
+## Model Chunk Backup
+
+To back up local GGUF models in GitHub-safe chunk sizes:
+
+- `model-backup/chunk_models.ps1`
+- `model-backup/reassemble_models.ps1`
+- `model-backup/README.md`
+
 ## Mobile Notes
 - iOS does not support a native shell-style local installer flow.
 - Recommended iOS path: run Indigo on desktop/Linux, then access from Safari over LAN.
