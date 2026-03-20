@@ -84,6 +84,7 @@ Use the ISO builder in:
 - `kiosk-iso/README.md`
 
 This generates an install-capable live ISO under `output/iso/` for USB imaging.
+It can also preload models from an existing Indigo snapshot via `INDIGO_SNAPSHOT_DIR`.
 
 ## Model Chunk Backup
 

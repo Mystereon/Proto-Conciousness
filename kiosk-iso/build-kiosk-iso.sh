@@ -14,6 +14,7 @@ IMAGE_BASENAME="${IMAGE_BASENAME:-indigo-kiosk-live-${DIST}-${ARCH}}"
 WORK_DIR="${WORK_DIR:-${REPO_ROOT}/tmp/kiosk-iso-build}"
 OUT_DIR="${OUT_DIR:-${REPO_ROOT}/output/iso}"
 MIRROR_URL="${MIRROR_URL:-http://deb.debian.org/debian/}"
+INDIGO_SNAPSHOT_DIR="${INDIGO_SNAPSHOT_DIR:-}"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -55,6 +56,7 @@ mkdir -p config/includes.chroot/etc/xdg/openbox
 mkdir -p config/includes.chroot/etc/systemd/system
 mkdir -p config/includes.chroot/usr/local/bin
 mkdir -p config/includes.chroot/opt/indigo/source
+mkdir -p config/includes.chroot/opt/indigo/staged-models
 mkdir -p config/hooks/normal
 
 cat > config/package-lists/indigo-kiosk.list.chroot <<'EOF'
@@ -138,6 +140,7 @@ set -euo pipefail
 
 SOURCE_DIR="/opt/indigo/source"
 RUNTIME_DIR="/opt/indigo/runtime"
+STAGED_MODELS_DIR="/opt/indigo/staged-models"
 STAMP_FILE="${RUNTIME_DIR}/.bootstrap_ok"
 
 mkdir -p "${RUNTIME_DIR}"
@@ -148,6 +151,12 @@ fi
 if [[ ! -f "${SOURCE_DIR}/install.sh" ]]; then
   echo "Missing ${SOURCE_DIR}/install.sh" >&2
   exit 1
+fi
+
+if [[ -d "${STAGED_MODELS_DIR}" ]]; then
+  mkdir -p "${RUNTIME_DIR}/models"
+  cp -f "${STAGED_MODELS_DIR}"/*.gguf "${RUNTIME_DIR}/models/" 2>/dev/null || true
+  cp -f "${STAGED_MODELS_DIR}"/preferred_model*.txt "${RUNTIME_DIR}/models/" 2>/dev/null || true
 fi
 
 export INDIGO_BASE_DIR="${RUNTIME_DIR}"
@@ -227,6 +236,25 @@ rsync -a \
   --exclude "__pycache__" \
   "${REPO_ROOT}/" \
   config/includes.chroot/opt/indigo/source/
+
+if [[ -n "${INDIGO_SNAPSHOT_DIR}" ]]; then
+  if [[ ! -d "${INDIGO_SNAPSHOT_DIR}" ]]; then
+    echo "INDIGO_SNAPSHOT_DIR does not exist: ${INDIGO_SNAPSHOT_DIR}" >&2
+    exit 1
+  fi
+
+  SNAPSHOT_MODELS_DIR="${INDIGO_SNAPSHOT_DIR}"
+  if [[ -d "${INDIGO_SNAPSHOT_DIR}/models" ]]; then
+    SNAPSHOT_MODELS_DIR="${INDIGO_SNAPSHOT_DIR}/models"
+  fi
+
+  echo "Staging models from snapshot: ${SNAPSHOT_MODELS_DIR}"
+  shopt -s nullglob
+  for file in "${SNAPSHOT_MODELS_DIR}"/*.gguf "${SNAPSHOT_MODELS_DIR}"/preferred_model*.txt; do
+    cp -f "${file}" config/includes.chroot/opt/indigo/staged-models/
+  done
+  shopt -u nullglob
+fi
 
 lb build
 
