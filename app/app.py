@@ -80,6 +80,7 @@ HTML_TEMPLATE = """
   <script>
     const THEMES = ["theme-covert", "theme-aero", "theme-n64", "theme-army"];
     let waiting = false;
+    let reasoningPollInFlight = false;
     function setTheme(name) {
       const t = THEMES.includes(name) ? name : "theme-aero";
       document.body.classList.remove(...THEMES);
@@ -102,10 +103,22 @@ HTML_TEMPLATE = """
       chat.appendChild(el);
       chat.scrollTop = chat.scrollHeight;
     }
-    function renderReasoning(rows){
+    function renderReasoning(rows, inProgress){
       const root = document.getElementById("reasoning");
       root.innerHTML = "";
-      (rows || []).slice(-80).forEach(r => {
+
+      const snapshot = (rows || []).slice(-80);
+      if (snapshot.length === 0) {
+        const row = document.createElement("div");
+        row.className = "line";
+        row.textContent = inProgress
+          ? "Tracing is active. Waiting for next reasoning step..."
+          : "No reasoning yet. Send a message to start tracing.";
+        root.appendChild(row);
+        return;
+      }
+
+      snapshot.forEach(r => {
         const row = document.createElement("div");
         row.className = "line";
         row.textContent = "[" + (r.ts || "") + "] " + (r.stage || "step") + ": " + (r.detail || "");
@@ -113,12 +126,18 @@ HTML_TEMPLATE = """
       });
       root.scrollTop = root.scrollHeight;
     }
-    async function pollReasoning(){
+
+    async function pollReasoning(force = false){
+      if (reasoningPollInFlight && !force) return;
+      reasoningPollInFlight = true;
       try{
         const r = await fetch("/reasoning");
         const d = await r.json();
-        renderReasoning(d.entries || []);
-      }catch(_){}
+        renderReasoning(d.entries || [], !!d.in_progress);
+      }catch(_){
+      }finally{
+        reasoningPollInFlight = false;
+      }
     }
     async function sendMessage(){
       if (waiting) return;
@@ -139,7 +158,7 @@ HTML_TEMPLATE = """
         status("Request failed");
       }finally{
         setWait(false);
-        await pollReasoning();
+        await pollReasoning(true);
       }
     }
     async function speakLast(){ await fetch("/speak_last",{method:"POST"}); }
@@ -199,4 +218,4 @@ if __name__ == "__main__":
     host = os.environ.get("INDIGO_HOST", "0.0.0.0")
     port = int(os.environ.get("INDIGO_PORT", "5000"))
     debug = os.environ.get("INDIGO_DEBUG", "").lower() in ("1", "true", "yes")
-    app.run(host=host, port=port, debug=debug)
+    app.run(host=host, port=port, debug=debug, threaded=True)
