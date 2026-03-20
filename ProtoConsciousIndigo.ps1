@@ -32,8 +32,28 @@ $preferredLogicalModelPath = Join-Path $modelsDir "preferred_model_logical.txt"
 $preferredCreativeModelPath = Join-Path $modelsDir "preferred_model_creative.txt"
 $scriptRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($scriptRoot)) {
-    if ($MyInvocation.MyCommand.Path) {
-        $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $invocationPath = $null
+
+    if ($null -ne $MyInvocation) {
+        $invocationPath = [string]$MyInvocation.PSCommandPath
+        if ([string]::IsNullOrWhiteSpace($invocationPath)) {
+            $myCommand = $MyInvocation.MyCommand
+            if ($null -ne $myCommand) {
+                $pathProp = $myCommand.PSObject.Properties["Path"]
+                if ($pathProp -and -not [string]::IsNullOrWhiteSpace([string]$pathProp.Value)) {
+                    $invocationPath = [string]$pathProp.Value
+                } else {
+                    $definitionProp = $myCommand.PSObject.Properties["Definition"]
+                    if ($definitionProp -and -not [string]::IsNullOrWhiteSpace([string]$definitionProp.Value) -and (Test-Path ([string]$definitionProp.Value))) {
+                        $invocationPath = [string]$definitionProp.Value
+                    }
+                }
+            }
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($invocationPath) -and (Test-Path $invocationPath)) {
+        $scriptRoot = Split-Path -Parent $invocationPath
     } else {
         $scriptRoot = (Get-Location).Path
     }
