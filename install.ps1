@@ -1,11 +1,11 @@
-Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
 param(
     [string]$Repo = "Mystereon/Proto-Conciousness",
     [string]$Branch = "main"
 )
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $tempRoot = Join-Path $env:TEMP ("proto-consciousness-" + [guid]::NewGuid().ToString("N"))
 $zipPath = Join-Path $tempRoot "repo.zip"
