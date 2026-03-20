@@ -1110,8 +1110,28 @@ HTML_TEMPLATE = """
             color: var(--accent-strong);
             margin-bottom: 10px;
         }
+        .waterfall-wrap {
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            background: var(--reason-bg);
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        #reasoningWaterfall {
+            width: 100%;
+            height: 140px;
+            display: block;
+            border-radius: 6px;
+            image-rendering: pixelated;
+        }
+        .waterfall-meta {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 0.72rem;
+            letter-spacing: 0.03rem;
+        }
         #reasoning {
-            height: 400px;
+            height: 250px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -1231,6 +1251,9 @@ HTML_TEMPLATE = """
             #reasoning, #chat {
                 height: 300px;
             }
+            #reasoningWaterfall {
+                height: 120px;
+            }
         }
     </style>
 </head>
@@ -1257,6 +1280,10 @@ HTML_TEMPLATE = """
             </div>
             <div class="reason-panel">
                 <div class="reason-title">Reasoning Feed <span id="thinkingBadge"></span></div>
+                <div class="waterfall-wrap">
+                    <canvas id="reasoningWaterfall"></canvas>
+                    <div class="waterfall-meta">SDR-style trace: new rows represent the latest reasoning pulse.</div>
+                </div>
                 <div id="reasoning"></div>
             </div>
         </div>
@@ -1270,8 +1297,13 @@ HTML_TEMPLATE = """
 
     <script>
         const THEMES = ["theme-covert", "theme-aero", "theme-n64", "theme-army"];
+        const WATERFALL_BINS = 72;
         let awaitingReply = false;
         let reasoningGeneration = null;
+        let waterfallCanvas = null;
+        let waterfallCtx = null;
+        let lastWaterfallGeneration = null;
+        let waterfallResizeTimer = null;
 
         function updateThemeButtons(activeTheme) {
             const buttons = document.querySelectorAll(".theme-btn");
@@ -1290,6 +1322,7 @@ HTML_TEMPLATE = """
             document.body.classList.add(safeTheme);
             localStorage.setItem("indigo_theme", safeTheme);
             updateThemeButtons(safeTheme);
+            setTimeout(initWaterfall, 0);
         }
 
         function setStatus(text) {
@@ -1352,6 +1385,114 @@ HTML_TEMPLATE = """
             panel.scrollTop = panel.scrollHeight;
         }
 
+        function hashString(text) {
+            let hash = 0;
+            const value = text || "";
+            for (let i = 0; i < value.length; i++) {
+                hash = ((hash << 5) - hash) + value.charCodeAt(i);
+                hash |= 0;
+            }
+            return hash;
+        }
+
+        function stageColor(stage, inProgress) {
+            const key = (stage || "step").toLowerCase();
+            const palette = {
+                input: [77, 201, 255],
+                decision: [255, 203, 77],
+                route: [105, 152, 255],
+                llm: [98, 255, 167],
+                logical_output: [255, 121, 232],
+                creative_output: [255, 161, 87],
+                blend: [177, 120, 255],
+                output: [240, 245, 255],
+                step: [123, 198, 255],
+            };
+            const base = palette[key] || palette.step;
+            if (inProgress) {
+                return [
+                    Math.min(255, base[0] + 16),
+                    Math.min(255, base[1] + 16),
+                    Math.min(255, base[2] + 16),
+                ];
+            }
+            return base;
+        }
+
+        function initWaterfall() {
+            waterfallCanvas = document.getElementById("reasoningWaterfall");
+            if (!waterfallCanvas) return;
+            const ratio = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+            const width = Math.max(280, Math.floor(waterfallCanvas.clientWidth * ratio));
+            const height = Math.max(100, Math.floor(waterfallCanvas.clientHeight * ratio));
+            if (waterfallCanvas.width !== width || waterfallCanvas.height !== height) {
+                waterfallCanvas.width = width;
+                waterfallCanvas.height = height;
+            }
+            waterfallCtx = waterfallCanvas.getContext("2d", { alpha: false });
+            waterfallCtx.fillStyle = "#04070d";
+            waterfallCtx.fillRect(0, 0, waterfallCanvas.width, waterfallCanvas.height);
+            lastWaterfallGeneration = null;
+        }
+
+        function drawWaterfallRow(entries, inProgress, generation) {
+            if (!waterfallCtx || !waterfallCanvas) return;
+            const w = waterfallCanvas.width;
+            const h = waterfallCanvas.height;
+
+            waterfallCtx.drawImage(waterfallCanvas, 0, 1, w, h - 1, 0, 0, w, h - 1);
+            waterfallCtx.fillStyle = "rgba(4, 7, 12, 0.96)";
+            waterfallCtx.fillRect(0, h - 1, w, 1);
+
+            if (lastWaterfallGeneration !== generation) {
+                lastWaterfallGeneration = generation;
+                waterfallCtx.fillStyle = "rgba(255, 255, 255, 0.55)";
+                waterfallCtx.fillRect(0, h - 1, w, 1);
+            }
+
+            const bins = Array.from({ length: WATERFALL_BINS }, () => ({ r: 0, g: 0, b: 0, e: 0 }));
+            const snapshot = (entries || []).slice(-24);
+
+            for (const entry of snapshot) {
+                const stage = entry.stage || "step";
+                const detail = entry.detail || "";
+                const [sr, sg, sb] = stageColor(stage, inProgress);
+                const index = Math.abs(hashString(stage + "|" + detail)) % WATERFALL_BINS;
+                const spread = 1 + (Math.abs(hashString(detail)) % 3);
+                const strength = Math.min(1, 0.3 + (detail.length / 220));
+
+                for (let offset = -spread; offset <= spread; offset++) {
+                    const bucket = (index + offset + WATERFALL_BINS) % WATERFALL_BINS;
+                    const decay = 1 - (Math.abs(offset) / (spread + 1));
+                    const energy = strength * decay;
+                    bins[bucket].r += sr * energy;
+                    bins[bucket].g += sg * energy;
+                    bins[bucket].b += sb * energy;
+                    bins[bucket].e += energy;
+                }
+            }
+
+            const binWidth = w / WATERFALL_BINS;
+            for (let i = 0; i < WATERFALL_BINS; i++) {
+                const b = bins[i];
+                if (b.e <= 0) continue;
+                const norm = Math.min(1, b.e / 2.2);
+                const r = Math.min(255, Math.round(b.r / b.e));
+                const g = Math.min(255, Math.round(b.g / b.e));
+                const bl = Math.min(255, Math.round(b.b / b.e));
+                const x = Math.floor(i * binWidth);
+                const width = Math.ceil(binWidth + 1);
+                waterfallCtx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${Math.max(0.09, norm)})`;
+                waterfallCtx.fillRect(x, h - 1, width, 1);
+            }
+
+            if (inProgress) {
+                const sweep = Math.floor((Date.now() / 80) % w);
+                waterfallCtx.fillStyle = "rgba(255, 255, 255, 0.33)";
+                waterfallCtx.fillRect(sweep, h - 1, 2, 1);
+            }
+        }
+
         async function refreshReasoning() {
             try {
                 const res = await fetch("/reasoning");
@@ -1362,6 +1503,7 @@ HTML_TEMPLATE = """
                 } else {
                     renderReasoning(data.entries || []);
                 }
+                drawWaterfallRow(data.entries || [], !!data.in_progress, data.generation);
                 if (!awaitingReply) {
                     document.getElementById("thinkingBadge").textContent = data.in_progress ? "(thinking...)" : "";
                 }
@@ -1427,8 +1569,14 @@ HTML_TEMPLATE = """
             }
         });
 
+        window.addEventListener("resize", function () {
+            clearTimeout(waterfallResizeTimer);
+            waterfallResizeTimer = setTimeout(initWaterfall, 120);
+        });
+
         const savedTheme = localStorage.getItem("indigo_theme") || "theme-aero";
         setTheme(savedTheme);
+        initWaterfall();
         refreshNodeInfo();
         refreshReasoning();
         setInterval(refreshNodeInfo, 15000);
