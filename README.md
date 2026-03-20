@@ -75,6 +75,16 @@ Experimental lite local-node mode:
 bash <(curl -fsSL https://raw.githubusercontent.com/Mystereon/Proto-Conciousness/main/install-android.sh) lite-local
 ```
 
+## Live USB / Kiosk ISO
+
+Need a distributable kiosk image with Indigo auto-running?  
+Use the ISO builder in:
+
+- `kiosk-iso/build-kiosk-iso.sh`
+- `kiosk-iso/README.md`
+
+This generates an install-capable live ISO under `output/iso/` for USB imaging.
+
 ## Mobile Notes
 - iOS does not support a native shell-style local installer flow.
 - Recommended iOS path: run Indigo on desktop/Linux, then access from Safari over LAN.
