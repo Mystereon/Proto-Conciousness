@@ -1319,6 +1319,7 @@ HTML_TEMPLATE = """
         const THEMES = ["theme-covert", "theme-aero", "theme-n64", "theme-army"];
         const WATERFALL_BINS = 72;
         let awaitingReply = false;
+        let reasoningPollInFlight = false;
         let reasoningGeneration = null;
         let waterfallCanvas = null;
         let waterfallCtx = null;
@@ -1377,10 +1378,21 @@ HTML_TEMPLATE = """
             chat.scrollTop = chat.scrollHeight;
         }
 
-        function renderReasoning(entries) {
+        function renderReasoning(entries, inProgress) {
             const panel = document.getElementById("reasoning");
             panel.innerHTML = "";
-            const shown = entries.slice(-80);
+
+            const shown = (entries || []).slice(-80);
+            if (shown.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "reason-item";
+                empty.textContent = inProgress
+                    ? "Tracing is active. Waiting for next reasoning step..."
+                    : "No reasoning yet. Send a message to start tracing.";
+                panel.appendChild(empty);
+                return;
+            }
+
             for (const entry of shown) {
                 const item = document.createElement("div");
                 item.className = "reason-item";
@@ -1513,21 +1525,23 @@ HTML_TEMPLATE = """
             }
         }
 
-        async function refreshReasoning() {
+        async function refreshReasoning(force = false) {
+            if (reasoningPollInFlight && !force) {
+                return;
+            }
+            reasoningPollInFlight = true;
             try {
                 const res = await fetch("/reasoning");
                 const data = await res.json();
-                if (reasoningGeneration !== data.generation) {
-                    reasoningGeneration = data.generation;
-                    renderReasoning(data.entries || []);
-                } else {
-                    renderReasoning(data.entries || []);
-                }
+                reasoningGeneration = data.generation;
+                renderReasoning(data.entries || [], !!data.in_progress);
                 drawWaterfallRow(data.entries || [], !!data.in_progress, data.generation);
                 if (!awaitingReply) {
                     document.getElementById("thinkingBadge").textContent = data.in_progress ? "(thinking...)" : "";
                 }
             } catch (_) {
+            } finally {
+                reasoningPollInFlight = false;
             }
         }
 
@@ -1548,7 +1562,7 @@ HTML_TEMPLATE = """
             input.value = "";
             setStatus("Thinking...");
             setThinkingState(true);
-            await refreshReasoning();
+            await refreshReasoning(true);
 
             try {
                 const res = await fetch("/chat", {
@@ -1567,7 +1581,7 @@ HTML_TEMPLATE = """
                 setStatus("Request failed; check local server.");
             } finally {
                 setThinkingState(false);
-                await refreshReasoning();
+                await refreshReasoning(true);
             }
         }
 
@@ -1657,7 +1671,7 @@ def health():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
 '@
 
 $brainCode = @'

@@ -244,6 +244,7 @@ HTML_TEMPLATE = """
     const THEMES = ["theme-covert", "theme-aero", "theme-n64", "theme-army"];
     const WATERFALL_BINS = 64;
     let waiting = false;
+    let reasoningPollInFlight = false;
     let waterfallCanvas = null;
     let waterfallCtx = null;
     let lastGeneration = null;
@@ -270,10 +271,22 @@ HTML_TEMPLATE = """
       chat.appendChild(el);
       chat.scrollTop = chat.scrollHeight;
     }
-    function renderReasoning(rows){
+    function renderReasoning(rows, inProgress){
       const root = document.getElementById("reasoning");
       root.innerHTML = "";
-      (rows || []).slice(-80).forEach(r => {
+
+      const snapshot = (rows || []).slice(-80);
+      if (snapshot.length === 0) {
+        const row = document.createElement("div");
+        row.className = "line";
+        row.textContent = inProgress
+          ? "Tracing is active. Waiting for next reasoning step..."
+          : "No reasoning yet. Send a message to start tracing.";
+        root.appendChild(row);
+        return;
+      }
+
+      snapshot.forEach(r => {
         const row = document.createElement("div");
         row.className = "line";
         row.textContent = "[" + (r.ts || "") + "] " + (r.stage || "step") + ": " + (r.detail || "");
@@ -364,13 +377,18 @@ HTML_TEMPLATE = """
         waterfallCtx.fillRect(sweep, h - 1, 2, 1);
       }
     }
-    async function pollReasoning(){
+    async function pollReasoning(force = false){
+      if (reasoningPollInFlight && !force) return;
+      reasoningPollInFlight = true;
       try{
         const r = await fetch("/reasoning");
         const d = await r.json();
-        renderReasoning(d.entries || []);
+        renderReasoning(d.entries || [], !!d.in_progress);
         drawWaterfallRow(d.entries || [], !!d.in_progress, d.generation);
-      }catch(_){}
+      }catch(_){
+      }finally{
+        reasoningPollInFlight = false;
+      }
     }
     async function sendMessage(){
       if (waiting) return;
@@ -391,7 +409,7 @@ HTML_TEMPLATE = """
         status("Request failed");
       }finally{
         setWait(false);
-        await pollReasoning();
+        await pollReasoning(true);
       }
     }
     async function speakLast(){ await fetch("/speak_last",{method:"POST"}); }
@@ -449,7 +467,7 @@ def health():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
 PY
 
 cat > "$INDIGO_BASE_DIR/brain.py" <<'PY'
