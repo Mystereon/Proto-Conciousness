@@ -36,6 +36,9 @@ Core idea: **a stable core mind with an evolving toolbox**.
 - One-prompt lock to prevent request storming
 - Live reasoning feed panel in web UI
 - Multi-theme interface (Covert Red, Aero, N64, Army)
+- Hands-free voice input in web UI:
+  - default system microphone by default
+  - optional microphone device override selector (browser support dependent)
 - Dual-model conductor support:
   - `preferred_model_logical.txt`
   - `preferred_model_creative.txt`
@@ -117,6 +120,9 @@ To back up local GGUF models in GitHub-safe chunk sizes:
 - iOS does not support a native shell-style local installer flow.
 - Recommended iOS path: run Indigo on desktop/Linux, then access from Safari over LAN.
 - Android support is provided via Termux scripts.
+
+## Privacy Note
+- Indigo does **not** use camera/face input unless a separate vision module is explicitly added and enabled.
 
 ## Post-Install Run Commands
 

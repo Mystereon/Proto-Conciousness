@@ -1258,6 +1258,54 @@ HTML_TEMPLATE = """
             background: var(--voice-accent);
             color: var(--voice-accent-contrast);
         }
+        .mic-controls {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            background: var(--panel-bg);
+        }
+        .mic-btn {
+            border-color: #7cffcb;
+            color: #7cffcb;
+        }
+        .mic-btn:hover {
+            background: #7cffcb;
+            color: #0d1f18;
+        }
+        .mic-default-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        #micDeviceSelect {
+            min-width: 220px;
+            max-width: 360px;
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--panel-border);
+            border-radius: 999px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 0.82rem;
+        }
+        .mic-refresh-btn {
+            padding: 8px 12px;
+            font-size: 0.82rem;
+        }
+        .mic-status {
+            margin-left: auto;
+            color: var(--muted);
+            font-size: 0.78rem;
+            line-height: 1.1rem;
+        }
         .status {
             margin-top: 18px;
             text-align: center;
@@ -1273,6 +1321,14 @@ HTML_TEMPLATE = """
             }
             #reasoningWaterfall {
                 height: 120px;
+            }
+            .mic-status {
+                width: 100%;
+                margin-left: 0;
+            }
+            #micDeviceSelect {
+                min-width: 180px;
+                flex: 1;
             }
         }
     </style>
@@ -1312,12 +1368,23 @@ HTML_TEMPLATE = """
             <button id="sendBtn" onclick="sendMessage()">Send</button>
             <button class="voice-btn" onclick="speakLast()">Voice</button>
         </div>
+        <div class="mic-controls">
+            <button id="micBtn" class="mic-btn" onclick="toggleVoiceInput()">Talk</button>
+            <label class="mic-default-wrap">
+                <input id="micDefault" type="checkbox" checked>
+                Use default mic
+            </label>
+            <select id="micDeviceSelect"></select>
+            <button id="micRefreshBtn" class="mic-refresh-btn" onclick="refreshMicDevices(true)">Refresh mics</button>
+            <span id="micStatus" class="mic-status">Mic ready (default device).</span>
+        </div>
         <div class="status" id="status">Seed intelligence active | Local node online</div>
     </div>
 
     <script>
         const THEMES = ["theme-covert", "theme-aero", "theme-n64", "theme-army"];
         const WATERFALL_BINS = 72;
+        const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
         let awaitingReply = false;
         let reasoningPollInFlight = false;
         let reasoningGeneration = null;
@@ -1325,6 +1392,12 @@ HTML_TEMPLATE = """
         let waterfallCtx = null;
         let lastWaterfallGeneration = null;
         let waterfallResizeTimer = null;
+        let recognition = null;
+        let micListening = false;
+        let micUseDefault = true;
+        let micDeviceId = "";
+        let micPrimedStream = null;
+        let micRefreshInFlight = false;
 
         function updateThemeButtons(activeTheme) {
             const buttons = document.querySelectorAll(".theme-btn");
@@ -1350,6 +1423,76 @@ HTML_TEMPLATE = """
             document.getElementById("status").textContent = text;
         }
 
+        function setMicStatus(text) {
+            const micStatus = document.getElementById("micStatus");
+            if (micStatus) {
+                micStatus.textContent = text;
+            }
+        }
+
+        function supportsSpeechInput() {
+            return !!SpeechRecognitionCtor && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && navigator.mediaDevices.enumerateDevices);
+        }
+
+        function saveMicPrefs() {
+            localStorage.setItem("indigo_mic_use_default", micUseDefault ? "1" : "0");
+            localStorage.setItem("indigo_mic_device_id", micDeviceId || "");
+        }
+
+        function loadMicPrefs() {
+            const savedDefault = localStorage.getItem("indigo_mic_use_default");
+            const savedDevice = localStorage.getItem("indigo_mic_device_id");
+            micUseDefault = savedDefault !== "0";
+            micDeviceId = savedDevice || "";
+        }
+
+        function applyMicControlState() {
+            const micBtn = document.getElementById("micBtn");
+            const micDefaultBox = document.getElementById("micDefault");
+            const micSelect = document.getElementById("micDeviceSelect");
+            const micRefreshBtn = document.getElementById("micRefreshBtn");
+
+            const speechSupported = supportsSpeechInput();
+            if (micBtn) {
+                micBtn.disabled = awaitingReply || !speechSupported;
+                micBtn.textContent = micListening ? "Stop" : "Talk";
+            }
+            if (micDefaultBox) {
+                micDefaultBox.checked = micUseDefault;
+                micDefaultBox.disabled = awaitingReply || !speechSupported;
+            }
+            if (micSelect) {
+                micSelect.disabled = awaitingReply || micUseDefault || !speechSupported;
+            }
+            if (micRefreshBtn) {
+                micRefreshBtn.disabled = awaitingReply || !speechSupported;
+            }
+        }
+
+        async function releaseMicStream() {
+            if (!micPrimedStream) return;
+            try {
+                for (const track of micPrimedStream.getTracks()) {
+                    track.stop();
+                }
+            } catch (_) {
+            } finally {
+                micPrimedStream = null;
+            }
+        }
+
+        function currentMicConstraints() {
+            if (micUseDefault || !micDeviceId) {
+                return { audio: true };
+            }
+            return { audio: { deviceId: { exact: micDeviceId } } };
+        }
+
+        async function primeMicrophone() {
+            await releaseMicStream();
+            micPrimedStream = await navigator.mediaDevices.getUserMedia(currentMicConstraints());
+        }
+
         function setThinkingState(thinking) {
             awaitingReply = thinking;
             const input = document.getElementById("msg");
@@ -1357,6 +1500,7 @@ HTML_TEMPLATE = """
             input.disabled = thinking;
             sendBtn.disabled = thinking;
             document.getElementById("thinkingBadge").textContent = thinking ? "(thinking...)" : "";
+            applyMicControlState();
         }
 
         function addMessage(text, sender) {
@@ -1415,6 +1559,152 @@ HTML_TEMPLATE = """
                 panel.appendChild(item);
             }
             panel.scrollTop = panel.scrollHeight;
+        }
+
+        async function refreshMicDevices(requestPermission = false) {
+            if (!supportsSpeechInput()) {
+                setMicStatus("Browser speech input is not supported here.");
+                applyMicControlState();
+                return;
+            }
+            if (micRefreshInFlight) return;
+            micRefreshInFlight = true;
+            const select = document.getElementById("micDeviceSelect");
+            try {
+                if (requestPermission) {
+                    try {
+                        await primeMicrophone();
+                    } catch (_) {
+                        setMicStatus("Mic access denied or unavailable.");
+                    }
+                }
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const inputs = devices.filter((d) => d.kind === "audioinput");
+                select.innerHTML = "";
+
+                for (const [index, device] of inputs.entries()) {
+                    const option = document.createElement("option");
+                    option.value = device.deviceId || "";
+                    option.textContent = device.label || `Microphone ${index + 1}`;
+                    select.appendChild(option);
+                }
+
+                if (inputs.length === 0) {
+                    const option = document.createElement("option");
+                    option.value = "";
+                    option.textContent = "No microphone devices found";
+                    select.appendChild(option);
+                    micDeviceId = "";
+                } else {
+                    const hasSaved = inputs.some((d) => d.deviceId === micDeviceId);
+                    if (!hasSaved) {
+                        micDeviceId = inputs[0].deviceId || "";
+                    }
+                    select.value = micDeviceId;
+                }
+
+                if (micUseDefault) {
+                    setMicStatus("Mic ready: system default device.");
+                } else {
+                    const activeText = select.options[select.selectedIndex]?.textContent || "selected device";
+                    setMicStatus(`Mic ready: ${activeText} (browser support dependent).`);
+                }
+            } catch (_) {
+                setMicStatus("Unable to read microphone device list.");
+            } finally {
+                micRefreshInFlight = false;
+                await releaseMicStream();
+                applyMicControlState();
+            }
+        }
+
+        async function toggleVoiceInput() {
+            if (!supportsSpeechInput()) {
+                setMicStatus("Speech input is not supported in this browser.");
+                return;
+            }
+            if (awaitingReply) {
+                setMicStatus("Hold on, still processing current response.");
+                return;
+            }
+            if (micListening && recognition) {
+                recognition.stop();
+                return;
+            }
+            await startVoiceInput();
+        }
+
+        async function startVoiceInput() {
+            const input = document.getElementById("msg");
+            let finalTranscript = "";
+
+            try {
+                await primeMicrophone();
+            } catch (_) {
+                setMicStatus("Mic access failed. Check browser permissions.");
+                return;
+            }
+
+            recognition = new SpeechRecognitionCtor();
+            recognition.lang = "en-GB";
+            recognition.interimResults = true;
+            recognition.continuous = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                micListening = true;
+                applyMicControlState();
+                setMicStatus(micUseDefault ? "Listening on default mic..." : "Listening on selected mic...");
+                setStatus("Listening...");
+            };
+
+            recognition.onresult = (event) => {
+                let interim = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const chunk = event.results[i][0]?.transcript || "";
+                    if (event.results[i].isFinal) {
+                        finalTranscript += chunk + " ";
+                    } else {
+                        interim += chunk;
+                    }
+                }
+                input.value = (finalTranscript + interim).trim();
+            };
+
+            recognition.onerror = (event) => {
+                if (event.error === "not-allowed") {
+                    setMicStatus("Mic permission blocked by browser.");
+                } else if (event.error === "no-speech") {
+                    setMicStatus("No speech detected. Try again.");
+                } else {
+                    setMicStatus(`Mic error: ${event.error}`);
+                }
+            };
+
+            recognition.onend = async () => {
+                micListening = false;
+                applyMicControlState();
+                await releaseMicStream();
+
+                const transcript = input.value.trim();
+                if (!transcript) {
+                    setStatus("Seed intelligence active | Local node online");
+                    return;
+                }
+
+                if (!awaitingReply) {
+                    setMicStatus("Transcript captured. Sending...");
+                    await sendMessage();
+                }
+            };
+
+            try {
+                recognition.start();
+            } catch (_) {
+                setMicStatus("Could not start voice capture.");
+                await releaseMicStream();
+            }
         }
 
         function hashString(text) {
@@ -1603,14 +1893,50 @@ HTML_TEMPLATE = """
             }
         });
 
+        document.getElementById("micDefault").addEventListener("change", function (event) {
+            micUseDefault = !!event.target.checked;
+            saveMicPrefs();
+            applyMicControlState();
+            if (micUseDefault) {
+                setMicStatus("Mic ready: system default device.");
+            } else {
+                const select = document.getElementById("micDeviceSelect");
+                const activeText = select.options[select.selectedIndex]?.textContent || "selected device";
+                setMicStatus(`Mic ready: ${activeText} (browser support dependent).`);
+            }
+        });
+
+        document.getElementById("micDeviceSelect").addEventListener("change", function (event) {
+            micDeviceId = event.target.value || "";
+            saveMicPrefs();
+            if (!micUseDefault) {
+                const activeText = event.target.options[event.target.selectedIndex]?.textContent || "selected device";
+                setMicStatus(`Mic ready: ${activeText} (browser support dependent).`);
+            }
+        });
+
         window.addEventListener("resize", function () {
             clearTimeout(waterfallResizeTimer);
             waterfallResizeTimer = setTimeout(initWaterfall, 120);
         });
 
+        if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+            navigator.mediaDevices.addEventListener("devicechange", function () {
+                refreshMicDevices(false);
+            });
+        }
+
         const savedTheme = localStorage.getItem("indigo_theme") || "theme-aero";
+        loadMicPrefs();
         setTheme(savedTheme);
         initWaterfall();
+        applyMicControlState();
+        if (supportsSpeechInput()) {
+            refreshMicDevices(false);
+        } else {
+            setMicStatus("Speech input unsupported in this browser.");
+            applyMicControlState();
+        }
         refreshNodeInfo();
         refreshReasoning();
         setInterval(refreshNodeInfo, 15000);
