@@ -1374,6 +1374,10 @@ HTML_TEMPLATE = """
                 <input id="micDefault" type="checkbox" checked>
                 Use default mic
             </label>
+            <label class="mic-default-wrap">
+                <input id="convoMode" type="checkbox">
+                Conversation mode
+            </label>
             <select id="micDeviceSelect"></select>
             <button id="micRefreshBtn" class="mic-refresh-btn" onclick="refreshMicDevices(true)">Refresh mics</button>
             <span id="micStatus" class="mic-status">Mic ready (default device).</span>
@@ -1398,6 +1402,8 @@ HTML_TEMPLATE = """
         let micDeviceId = "";
         let micPrimedStream = null;
         let micRefreshInFlight = false;
+        let conversationMode = false;
+        let autoListenTimer = null;
 
         function updateThemeButtons(activeTheme) {
             const buttons = document.querySelectorAll(".theme-btn");
@@ -1437,18 +1443,22 @@ HTML_TEMPLATE = """
         function saveMicPrefs() {
             localStorage.setItem("indigo_mic_use_default", micUseDefault ? "1" : "0");
             localStorage.setItem("indigo_mic_device_id", micDeviceId || "");
+            localStorage.setItem("indigo_conversation_mode", conversationMode ? "1" : "0");
         }
 
         function loadMicPrefs() {
             const savedDefault = localStorage.getItem("indigo_mic_use_default");
             const savedDevice = localStorage.getItem("indigo_mic_device_id");
+            const savedConvo = localStorage.getItem("indigo_conversation_mode");
             micUseDefault = savedDefault !== "0";
             micDeviceId = savedDevice || "";
+            conversationMode = savedConvo === "1";
         }
 
         function applyMicControlState() {
             const micBtn = document.getElementById("micBtn");
             const micDefaultBox = document.getElementById("micDefault");
+            const convoBox = document.getElementById("convoMode");
             const micSelect = document.getElementById("micDeviceSelect");
             const micRefreshBtn = document.getElementById("micRefreshBtn");
 
@@ -1461,12 +1471,34 @@ HTML_TEMPLATE = """
                 micDefaultBox.checked = micUseDefault;
                 micDefaultBox.disabled = awaitingReply || !speechSupported;
             }
+            if (convoBox) {
+                convoBox.checked = conversationMode;
+                convoBox.disabled = awaitingReply || !speechSupported;
+            }
             if (micSelect) {
                 micSelect.disabled = awaitingReply || micUseDefault || !speechSupported;
             }
             if (micRefreshBtn) {
                 micRefreshBtn.disabled = awaitingReply || !speechSupported;
             }
+        }
+
+        function clearAutoListenTimer() {
+            if (autoListenTimer) {
+                clearTimeout(autoListenTimer);
+                autoListenTimer = null;
+            }
+        }
+
+        function queueConversationListen() {
+            clearAutoListenTimer();
+            if (!conversationMode || !supportsSpeechInput()) return;
+            autoListenTimer = setTimeout(async () => {
+                autoListenTimer = null;
+                if (awaitingReply || micListening) return;
+                if (document.hidden) return;
+                await startVoiceInput();
+            }, 650);
         }
 
         async function releaseMicStream() {
@@ -1620,6 +1652,7 @@ HTML_TEMPLATE = """
         }
 
         async function toggleVoiceInput() {
+            clearAutoListenTimer();
             if (!supportsSpeechInput()) {
                 setMicStatus("Speech input is not supported in this browser.");
                 return;
@@ -1853,6 +1886,7 @@ HTML_TEMPLATE = """
             setStatus("Thinking...");
             setThinkingState(true);
             await refreshReasoning(true);
+            let replySucceeded = false;
 
             try {
                 const res = await fetch("/chat", {
@@ -1867,11 +1901,15 @@ HTML_TEMPLATE = """
                 }
                 addMessage(data.response || data.error || "No response", "indy");
                 setStatus("Seed intelligence active | Local node online");
+                replySucceeded = true;
             } catch (_) {
                 setStatus("Request failed; check local server.");
             } finally {
                 setThinkingState(false);
                 await refreshReasoning(true);
+                if (replySucceeded) {
+                    queueConversationListen();
+                }
             }
         }
 
@@ -1903,6 +1941,18 @@ HTML_TEMPLATE = """
                 const select = document.getElementById("micDeviceSelect");
                 const activeText = select.options[select.selectedIndex]?.textContent || "selected device";
                 setMicStatus(`Mic ready: ${activeText} (browser support dependent).`);
+            }
+        });
+
+        document.getElementById("convoMode").addEventListener("change", function (event) {
+            conversationMode = !!event.target.checked;
+            saveMicPrefs();
+            applyMicControlState();
+            if (conversationMode) {
+                setMicStatus("Conversation mode enabled: auto-listen after each reply.");
+            } else {
+                clearAutoListenTimer();
+                setMicStatus("Conversation mode disabled.");
             }
         });
 

@@ -39,6 +39,7 @@ Core idea: **a stable core mind with an evolving toolbox**.
 - Hands-free voice input in web UI:
   - default system microphone by default
   - optional microphone device override selector (browser support dependent)
+  - optional conversation mode (auto-listens after each completed reply)
 - Dual-model conductor support:
   - `preferred_model_logical.txt`
   - `preferred_model_creative.txt`
